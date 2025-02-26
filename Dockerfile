@@ -1,7 +1,13 @@
 FROM debian:bullseye-slim
 
 # Set nginx version
-ENV NGINX_VERSION=1.26.1
+ENV NGINX_VERSION=1.26.3
+ENV BORINGSSL_CHECKSUM=c59bf8bf189dcbde868e04efcd53b705ed155231
+ENV BORINGSSL_LOCAL="/build"
+
+# Build-time metadata
+ARG BUILD_DATE
+ARG VCS_REF
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -16,20 +22,27 @@ RUN apt-get update && apt-get install -y \
     git \
     cmake \
     golang \
+    ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directories
-WORKDIR /build
+WORKDIR ${BORINGSSL_LOCAL}
+RUN git clone --depth=1 --shallow-submodules --branch main https://boringssl.googlesource.com/boringssl \
+  && cd boringssl \
+  && mkdir build \
+  && cd build \
+  && cmake -GNinja -DBUILD_SHARED_LIBS=1 .. \
+  && ninja
 
-# Clone and build BoringSSL following the article's approach
-RUN git clone --depth 1 https://boringssl.googlesource.com/boringssl \
-    && mkdir -p /build/boringssl/build /build/boringssl/.openssl/lib /build/boringssl/.openssl/include \
-    && ln -sf /build/boringssl/include/openssl /build/boringssl/.openssl/include/openssl \
-    && touch /build/boringssl/.openssl/include/openssl/ssl.h \
-    && cd /build/boringssl \
-    && cmake -B/build/boringssl/build -H/build/boringssl \
-    && make -C /build/boringssl/build \
-    && cp /build/boringssl/build/crypto/libcrypto.a /build/boringssl/build/ssl/libssl.a /build/boringssl/.openssl/lib
+# Prepare BoringSSL for Nginx compilation
+RUN mkdir -p "$BORINGSSL_LOCAL/boringssl/.openssl/lib" \
+&& cd "$BORINGSSL_LOCAL/boringssl/.openssl" \
+&& ln -s ../include include \
+&& cd "$BORINGSSL_LOCAL/boringssl" \
+&& cp "build/crypto/libcrypto.so" ".openssl/lib" \
+&& cp "build/ssl/libssl.so" ".openssl/lib" \
+&& cp ".openssl/lib/libssl.so" /usr/lib/ \
+&& cp ".openssl/lib/libcrypto.so" /usr/lib/
 
 # Download and extract nginx source
 WORKDIR /build
@@ -78,8 +91,10 @@ RUN ./configure \
     --with-stream_realip_module \
     --with-stream_ssl_module \
     --with-stream_ssl_preread_module \
-    --with-openssl=/build/boringssl \
-    && touch /build/boringssl/.openssl/include/openssl/ssl.h \
+    --with-cc-opt="-I$BORINGSSL_LOCAL/boringssl/include -Wno-error" \
+    --with-ld-opt="-L$BORINGSSL_LOCAL/boringssl/build/ssl -L$BORINGSSL_LOCAL/boringssl/build/crypto" \
+    --build="docker-nginx-http3-$VCS_REF-$BUILD_DATE" \
+    && touch $BORINGSSL_LOCAL/boringssl/.openssl/include/openssl/ssl.h \
     && make -j$(nproc) \
     && make install
 
@@ -91,6 +106,9 @@ RUN cp /usr/sbin/nginx /output/
 
 # Set the output directory as the working directory
 WORKDIR /output
+
+# Install the 'file' command
+RUN apt-get update && apt-get install -y file && rm -rf /var/lib/apt/lists/*
 
 # Define the entrypoint to output information about the binary
 CMD ["sh", "-c", "file nginx && ./nginx -V && echo 'Nginx binary is available at /output/nginx'"] 
