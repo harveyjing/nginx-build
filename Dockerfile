@@ -29,7 +29,6 @@ RUN apk update && apk add --no-cache \
     git \
     cmake \
     go \
-    ninja \
     linux-headers \
     file
 
@@ -39,8 +38,8 @@ RUN git clone --depth=1 --shallow-submodules --branch main https://boringssl.goo
   && cd boringssl \
   && mkdir build \
   && cd build \
-  && cmake -GNinja -DBUILD_SHARED_LIBS=1 .. \
-  && ninja
+  && cmake -DBUILD_SHARED_LIBS=1 .. \
+  && make
 
 # Prepare BoringSSL for Nginx compilation
 RUN mkdir -p "$BORINGSSL_LOCAL/boringssl/.openssl/lib" \
