@@ -3,6 +3,9 @@ Now the Nginx build is done. Next stage I am going to test the functionality of 
 
 1. So I wanna run a helloworld babby service and let the nginx reverse proxy the service.
 2. Route the flow starting with `/api` to the helloworld server;
+3. Test file streaming: 
+   1. with route `/api/file/$uuid`; 
+   2. Download with `GET` method;
 
 
 ## Reqirements
