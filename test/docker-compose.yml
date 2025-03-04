@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  nginx:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ../certs:/etc/nginx/certs:ro
+    depends_on:
+      - hello-service
+
+  hello-service:
+    build:
+      context: ./hello-service
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    restart: unless-stopped 
