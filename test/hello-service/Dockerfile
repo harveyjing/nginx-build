@@ -8,6 +8,7 @@ FROM alpine:3.19
 
 WORKDIR /app
 COPY --from=builder /app/main .
+COPY static/ /app/static/
 
 # Create directory for file storage
 RUN mkdir -p /data/files && \
