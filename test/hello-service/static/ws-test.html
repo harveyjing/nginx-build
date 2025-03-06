@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .sent {
+            background-color: #e3f2fd;
+        }
+        .received {
+            background-color: #f5f5f5;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 8px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h2>WebSocket Test</h2>
+    <div id="messages"></div>
+    <div>
+        <input type="text" id="messageInput" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        let ws;
+
+        function connect() {
+            // Use secure WebSocket if the page is served over HTTPS
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                addMessage('System', 'Connected to server', 'received');
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                addMessage('Server', `${msg.type}: ${JSON.stringify(msg.content)}`, 'received');
+            };
+
+            ws.onclose = () => {
+                addMessage('System', 'Disconnected from server', 'received');
+                // Try to reconnect after 3 seconds
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                addMessage('System', 'WebSocket error: ' + error.message, 'received');
+            };
+        }
+
+        function sendMessage() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addMessage('System', 'Not connected to server', 'received');
+                return;
+            }
+
+            const message = messageInput.value;
+            if (message) {
+                const msg = {
+                    type: 'message',
+                    content: message
+                };
+                ws.send(JSON.stringify(msg));
+                addMessage('You', message, 'sent');
+                messageInput.value = '';
+            }
+        }
+
+        function addMessage(sender, text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = `${sender}: ${text}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Handle Enter key in input
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Connect when page loads
+        connect();
+    </script>
+</body>
+</html> 

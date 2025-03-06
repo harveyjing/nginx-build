@@ -1,0 +1,190 @@
+# Nginx HTTP/3 Test Environment
+
+This directory contains a test environment for the Nginx HTTP/3 build. It includes a Go service for testing various HTTP functionalities and Nginx as a reverse proxy.
+
+## Project Structure
+
+```
+test/
+├── README.md                 # This file
+├── docker-compose.yml        # Docker compose configuration
+├── hello-service/           # Go test service
+│   ├── Dockerfile
+│   ├── go.mod
+│   └── main.go
+└── nginx/                   # Nginx configuration
+    ├── nginx.conf           # Main Nginx configuration
+    └── conf.d/              # Modular configuration files
+        ├── upstream.conf    # Upstream definitions
+        ├── server.conf      # Server block configuration
+        └── locations/       # Location-specific configurations
+            └── api.conf     # API endpoints configuration
+```
+
+## Features
+
+1. **Basic HTTP Endpoint**
+   - Path: `/api/`
+   - Returns: "Hello, World!"
+
+2. **File Operations**
+   - Path: `/api/file/{uuid}`
+   - Supports both download (GET) and upload (POST)
+   - UUID validation
+   - Configurable file size for downloads
+   - Streaming support for both operations
+   - Download: Generates random binary data of specified size
+   - Upload: Validates and processes file uploads (for testing purposes)
+
+3. **WebSocket Support**
+   - Path: `/api/ws`
+   - Full-duplex communication
+   - Supports JSON message format
+   - Includes test page at `/ws-test`
+   - Features:
+     - Welcome message on connection
+     - Echo functionality
+     - Connection status logging
+
+4. **JSON Endpoint**
+   - Path: `/api/json`
+   - Returns: JSON response with message
+
+## Usage Examples
+
+### File Download
+
+```bash
+# Download a 1MB random file (default size)
+curl -O "http://localhost/api/file/123e4567-e89b-12d3-a456-426614174000"
+
+# Download with custom size (5MB)
+curl -O "http://localhost/api/file/123e4567-e89b-12d3-a456-426614174000?size=5242880"
+```
+
+### File Upload
+
+```bash
+# Create a test file
+dd if=/dev/urandom of=test.bin bs=1M count=10
+
+# Upload the file
+curl -X POST -T test.bin http://localhost/api/file/123e4567-e89b-12d3-a456-426614174000
+```
+
+### WebSocket Testing
+
+```bash
+# Using wscat (install with: npm install -g wscat)
+wscat -c ws://localhost/api/ws
+
+# Or use the built-in test page
+open http://localhost/ws-test
+```
+
+## Running the Environment
+
+1. Start the environment:
+   ```bash
+   docker compose up --build
+   ```
+
+2. The following services will be available:
+   - Nginx reverse proxy on ports 80 (HTTP) and 443 (HTTPS/HTTP3)
+   - Go service internally on port 8080 (accessed through Nginx)
+
+## Configuration
+
+### Go Service
+- Located in `hello-service/main.go`
+- Features:
+  - Gorilla Mux router for request handling
+  - WebSocket support with Gorilla WebSocket
+  - UUID validation for file operations
+  - Random data generation for downloads
+  - Comprehensive request logging
+  - Static file serving
+
+### Nginx
+- Uses the custom HTTP/3 build from the parent directory
+- Configured to reverse proxy to the Go service
+- Handles SSL/TLS termination
+- Supports HTTP/3 protocol
+- Features:
+  - Access and error logging
+  - SSL session caching
+  - Optimized TCP settings
+  - MIME type support
+
+## Testing Notes
+
+1. File downloads generate random binary data
+2. File uploads are processed but not stored (for testing purposes)
+3. All endpoints are accessed through Nginx reverse proxy
+4. SSL certificates are required for HTTPS/HTTP3 functionality
+5. WebSocket connections support JSON message format
+6. Comprehensive logging for debugging and monitoring
+
+## Traffic Analysis with Wireshark
+
+### Capturing Traffic
+
+```bash
+# 1. Start the containers
+docker-compose up -d
+
+# 2. Install tcpdump in the Nginx container (using Alpine package manager)
+docker exec test-nginx-1 sh -c "apk update && apk add --no-cache tcpdump"
+
+# 3. Get the IP address of the hello-service
+docker inspect test-hello-service-1 | grep IPAddress
+
+# 4. Capture traffic between Nginx and hello-service
+# Replace HELLO_SERVICE_IP with the IP from step 3
+docker exec test-nginx-1 tcpdump -i any -w /tmp/capture.pcap "host HELLO_SERVICE_IP"
+
+# 5. Copy the capture file from container to host
+docker cp test-nginx-1:/tmp/capture.pcap ./nginx_upstream.pcap
+```
+
+### Analyzing in Wireshark
+
+1. Open Wireshark and load the capture file:
+   - Method 1: Double click the nginx_upstream.pcap file
+   - Method 2: In Wireshark, go to File -> Open and select nginx_upstream.pcap
+
+2. Useful Wireshark filters for HTTP traffic analysis:
+   ```
+   # Filter HTTP traffic
+   http
+
+   # Filter specific HTTP methods
+   http.request.method == "GET"
+   http.request.method == "POST"
+
+   # Filter by response code
+   http.response.code == 200
+   http.response.code >= 400
+
+   # Follow HTTP stream
+   Right-click on a packet -> Follow -> HTTP Stream
+
+   # View timing between request and response
+   tcp.time_delta  # Shows time between packets
+
+   # Filter WebSocket traffic
+   websocket
+   ```
+
+3. Tips for analysis:
+   - Use the "Statistics -> Flow Graph" to visualize request/response patterns
+   - Use "Statistics -> HTTP -> Requests" to see HTTP method distribution
+   - Look for any TCP retransmissions or errors using "tcp.analysis.flags"
+   - For WebSocket analysis, use the "WebSocket" filter and follow the stream
+
+## Requirements
+
+- Docker with Compose V2
+- The parent directory's Nginx HTTP/3 build
+- SSL certificates (for HTTPS/HTTP3)
+- Optional: wscat for WebSocket testing 
