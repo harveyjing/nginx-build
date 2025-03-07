@@ -1,1 +1,20 @@
+# Generated LetsEncrypt certificates
 certs/
+
+# macOS metadata
+.DS_Store
+
+# Go build cache
+*.a
+*.o
+*.s
+
+*.mkv
+*.mp4
+*.avi
+*.mov
+*.flv
+*.wmv
+*.webm
+*.bin
+*.txt
