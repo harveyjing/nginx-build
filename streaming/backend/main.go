@@ -58,23 +58,84 @@ func healthCheck(c *gin.Context) {
 
 // listFiles handles the file listing endpoint
 func listFiles(c *gin.Context) {
+	// Get the directory path from query parameter, default to data root
+	dirPath := c.Query("path")
+	if dirPath == "" {
+		dirPath = "."
+	}
+
+	// Ensure the path is relative to data directory
 	dataDir := "./data"
+	fullPath := filepath.Join(dataDir, dirPath)
+
+	// Security check - ensure the path is within data directory
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to resolve data directory: %v", err),
+		})
+		return
+	}
+
+	absFullPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to resolve path: %v", err),
+		})
+		return
+	}
+
+	if !filepath.HasPrefix(absFullPath, absDataDir) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid directory path",
+		})
+		return
+	}
+
+	// Check if directory exists
+	dirInfo, err := os.Stat(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Directory not found",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("Failed to access directory: %v", err),
+			})
+		}
+		return
+	}
+
+	// Make sure it's a directory
+	if !dirInfo.IsDir() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Path is not a directory",
+		})
+		return
+	}
+
+	// Read directory entries (non-recursive)
+	entries, err := os.ReadDir(fullPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to list directory contents: %v", err),
+		})
+		return
+	}
+
+	// Convert entries to FileInfo struct
 	files := []FileInfo{}
-
-	err := filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
+	for _, entry := range entries {
+		info, err := entry.Info()
 		if err != nil {
-			return err
+			continue // Skip entries with errors
 		}
 
-		// Skip the root data directory itself
-		if path == dataDir {
-			return nil
-		}
-
-		// Create relative path from data directory
-		relPath, err := filepath.Rel(dataDir, path)
+		entryPath := filepath.Join(dirPath, entry.Name())
+		relPath, err := filepath.Rel(".", entryPath)
 		if err != nil {
-			return err
+			relPath = entryPath // Fallback if relative path can't be determined
 		}
 
 		files = append(files, FileInfo{
@@ -84,18 +145,12 @@ func listFiles(c *gin.Context) {
 			LastModified: info.ModTime(),
 			IsDirectory:  info.IsDir(),
 		})
-
-		return nil
-	})
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to list files: %v", err),
-		})
-		return
 	}
 
-	c.JSON(http.StatusOK, files)
+	c.JSON(http.StatusOK, gin.H{
+		"currentPath": dirPath,
+		"files":       files,
+	})
 }
 
 // handleDownload handles single and multiple file downloads

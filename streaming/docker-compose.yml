@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  streaming-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./data:/app/data
+    environment:
+      - GIN_MODE=release
+
+  nginx:
+    build:
+      context: ..  # Use parent directory for the root Dockerfile
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+      - "443:443/udp" # HTTP/3 (QUIC over UDP)
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro  # Mount frontend files
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro  # Mount nginx config
+      - ./certs:/etc/nginx/certs:ro  # SSL certificates
+    depends_on:
+      - streaming-server
+
+volumes:
+  data:
+
+networks:
+  default:
+    driver: bridge 

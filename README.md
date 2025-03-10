@@ -93,31 +93,67 @@ For detailed information about the test environment, including available endpoin
 
 ## HTTP/3 Configuration
 
-To use HTTP/3 in your nginx configuration, you need to:
+To enable HTTP/3 support in nginx, you need to properly configure your server blocks. HTTP/3 requires HTTPS and QUIC protocol support. Here's the correct configuration:
 
-1. Add the `http3` parameter to the listen directive:
-   ```
-   listen 443 ssl http3;
-   ```
+```nginx
+server {
+    # Standard HTTP port - redirect to HTTPS
+    listen 80;
+    server_name example.com;
+    return 301 https://$host$request_uri;
+}
 
-2. Enable QUIC and HTTP/3 transport for HTTPS:
-   ```
-   listen 443 quic reuseport;
-   http3 on;
-   ```
+server {
+    # Configure HTTP/3
+    listen 443 ssl;                # Standard HTTPS
+    listen 443 quic reuseport;     # UDP port for QUIC+HTTP/3
+    server_name example.com;
+    
+    # SSL certificates
+    ssl_certificate     /etc/nginx/certs/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/live/example.com/privkey.pem;
+    
+    # Enable HTTP/3
+    http3 on;
+    
+    # Add Alt-Svc header to inform clients about HTTP/3 support
+    add_header Alt-Svc 'h3=":443"; ma=86400';
+    
+    # SSL settings
+    ssl_protocols TLSv1.3;         # TLSv1.3 preferred for HTTP/3
+    
+    # Your server configuration
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}
+```
 
-3. Add the Alt-Svc header to inform clients of HTTP/3 support:
-   ```
-   add_header Alt-Svc 'h3=":443"; ma=86400';
-   ```
+Key points to understand:
 
-4. Configure SSL settings for optimal HTTP/3 performance:
-   ```
-   ssl_session_cache shared:SSL:10m;
-   ssl_session_timeout 10m;
-   ssl_protocols TLSv1.2 TLSv1.3;
-   ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-   ```
+1. **Dual Listening**:
+   - Standard TLS over TCP: `listen 443 ssl;`
+   - QUIC+HTTP/3 over UDP: `listen 443 quic reuseport;`
+
+2. **HTTP/3 Enabling**:
+   - Use the directive `http3 on;` to enable HTTP/3 protocol
+
+3. **Alt-Svc Header**:
+   - The `Alt-Svc` header tells clients the server supports HTTP/3
+   - The value `h3=":443"; ma=86400` means HTTP/3 is available on port 443 with a max age of 1 day
+
+4. **TLSv1.3 Recommendation**:
+   - HTTP/3 works best with TLSv1.3 for optimal performance
+
+5. **UDP Port Requirements**:
+   - Make sure port 443/UDP is open in your firewall for HTTP/3 to work
+   
+6. **Reuseport Option**:
+   - The `reuseport` parameter allows multiple worker processes to accept connections from the same port
+   - This improves performance in multi-worker nginx setups by distributing connection load
+
+Note: HTTP/3 is still evolving, and this configuration is based on the current implementation in nginx 1.26.1 with HTTP/3 support.
 
 ## Customization
 

@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  nginx:
+    volumes:
+      - ./nginx.conf.production:/etc/nginx/conf.d/default.conf:ro  # Use production Nginx config
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+      - "443:443/udp" # HTTP/3 
