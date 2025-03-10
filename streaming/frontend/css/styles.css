@@ -1,0 +1,292 @@
+:root {
+    --primary-color: #2196F3;
+    --secondary-color: #607D8B;
+    --background-color: #f5f5f5;
+    --surface-color: #ffffff;
+    --text-color: #333333;
+    --border-color: #e0e0e0;
+    --hover-color: #f8f9fa;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+header {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    font-size: 1.8rem;
+    color: var(--text-color);
+}
+
+.stats {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-color);
+}
+
+.btn-primary, .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:disabled {
+    background-color: var(--secondary-color);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.file-list {
+    background-color: var(--surface-color);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.file-list-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 100px 180px;
+    padding: 1rem;
+    background-color: var(--hover-color);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
+}
+
+.file-list-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: grid;
+    grid-template-columns: 40px 1fr 100px 180px;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+}
+
+.file-item:hover {
+    background-color: var(--hover-color);
+}
+
+.file-item i {
+    margin-right: 0.5rem;
+    color: var(--secondary-color);
+}
+
+.checkbox-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.size-cell, .date-cell {
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+}
+
+.progress-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-container {
+    background-color: var(--surface-color);
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.progress-bar {
+    height: 8px;
+    background-color: var(--border-color);
+    border-radius: 4px;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background-color: var(--primary-color);
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin: 1rem auto;
+    }
+
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .controls {
+        flex-direction: column;
+    }
+
+    .file-list-header, .file-item {
+        grid-template-columns: 40px 1fr 80px;
+    }
+
+    .date-cell {
+        display: none;
+    }
+}
+
+/* Path display and breadcrumbs */
+.path-display {
+    background-color: var(--surface-color);
+    padding: 0.75rem 1rem;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    margin-bottom: -8px; /* Connect to file list without gap */
+}
+
+.path-display i {
+    margin-right: 0.5rem;
+    color: var(--secondary-color);
+}
+
+.breadcrumb-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-current {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+/* Directory navigation */
+.directory-link {
+    color: var(--text-color);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.directory-link i {
+    margin-right: 0.5rem;
+    color: var(--secondary-color);
+}
+
+.directory-link:hover {
+    color: var(--primary-color);
+}
+
+.fa-folder-up {
+    color: var(--secondary-color);
+}
+
+/* When no path-display is present, restore rounded top corners */
+.file-list:not(:has(.path-display + &)) {
+    border-radius: 8px;
+}
+
+/* Folder checkbox styles */
+.folder-checkbox {
+    accent-color: var(--secondary-color);  /* Different color for folder checkboxes */
+}
+
+.file-item:has(.folder-checkbox:checked) {
+    background-color: rgba(96, 125, 139, 0.1);  /* Light highlight for selected folders */
+} 

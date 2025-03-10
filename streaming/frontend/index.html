@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Download Service</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>File Download Service</h1>
+            <div class="stats">
+                <span id="selectedCount">0 files selected</span>
+                <span id="totalSize">Total: 0 B</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search files...">
+                <i class="fas fa-search"></i>
+            </div>
+            <button id="downloadSelected" class="btn-primary" disabled>
+                <i class="fas fa-download"></i> Download Selected
+            </button>
+        </div>
+
+        <div class="file-list" id="fileList">
+            <div class="file-list-header">
+                <div class="checkbox-cell">
+                    <input type="checkbox" id="selectAll">
+                </div>
+                <div class="name-cell">Name</div>
+                <div class="size-cell">Size</div>
+                <div class="date-cell">Modified</div>
+            </div>
+            <div class="file-list-body" id="fileListBody">
+                <!-- Files will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html> 

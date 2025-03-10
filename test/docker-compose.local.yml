@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  nginx:
+    volumes:
+      - ./server.conf.local:/etc/nginx/conf.d/server.conf:ro  # Override the server.conf with localhost version
+    ports:
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+      - "443:443/udp" # HTTP/3 (QUIC over UDP) 

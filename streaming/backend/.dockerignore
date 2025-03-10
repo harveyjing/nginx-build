@@ -1,0 +1,27 @@
+# Git files
+.git
+.gitignore
+
+# Docker files
+Dockerfile*
+docker-compose.yml
+.dockerignore
+
+# Data and logs
+**/data/
+*.log
+
+# Dependencies
+**/node_modules
+
+# System files
+**/.DS_Store
+**/Thumbs.db
+
+# Build artifacts
+**/build
+**/dist
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib 
