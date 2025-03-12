@@ -1,13 +1,67 @@
 #!/bin/bash
 set -e
 
-# Replace these with your domain and email
-DOMAIN="wjing.xyz"
-PRIMARY_DOMAIN="www.wjing.xyz"
-EMAIL="wjing@wjing.dev"
-
+# Default values
 CONTAINER_NAME="nginx-https-server"
 IMAGE_NAME="nginx-http3"
+
+# Help function
+usage() {
+    echo "Usage: $0 -d domain [-e email] [-c container_name] [-i image_name]"
+    echo
+    echo "Options:"
+    echo "  -d domain        Domain name (required, e.g., example.com)"
+    echo "  -e email        Email address for Let's Encrypt notifications (default: admin@domain)"
+    echo "  -c name         Container name (default: nginx-https-server)"
+    echo "  -i name         Image name (default: nginx-http3)"
+    echo "  -h             Show this help message"
+    exit 1
+}
+
+# Parse command line arguments
+while getopts "d:e:c:i:h" opt; do
+    case $opt in
+        d)
+            DOMAIN="$OPTARG"
+            ;;
+        e)
+            EMAIL="$OPTARG"
+            ;;
+        c)
+            CONTAINER_NAME="$OPTARG"
+            ;;
+        i)
+            IMAGE_NAME="$OPTARG"
+            ;;
+        h)
+            usage
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage
+            ;;
+    esac
+done
+
+# Check if domain is provided
+if [ -z "$DOMAIN" ]; then
+    echo "Error: Domain name is required"
+    usage
+fi
+
+# Set default email if not provided
+if [ -z "$EMAIL" ]; then
+    EMAIL="admin@$DOMAIN"
+fi
+
+# Set www subdomain
+PRIMARY_DOMAIN="www.$DOMAIN"
+
+echo "Generating SSL certificates for:"
+echo "Domain: $DOMAIN"
+echo "WWW Domain: $PRIMARY_DOMAIN"
+echo "Email: $EMAIL"
+echo
 
 # Create directory for certbot
 mkdir -p ./certs/certbot
@@ -49,4 +103,9 @@ docker run -d --name $CONTAINER_NAME \
 echo "0 0 1 * * docker run --rm -v $(pwd)/certs:/etc/letsencrypt -v $(pwd)/certs/certbot:/var/lib/letsencrypt certbot/certbot renew --quiet && docker restart $CONTAINER_NAME" | sudo tee -a /var/spool/cron/crontabs/root
 
 echo "SSL certificates have been obtained and nginx has been started!"
-echo "Automatic renewal has been set up to run monthly." 
+echo "Automatic renewal has been set up to run monthly."
+echo
+echo "Your certificates are located at:"
+echo "  - ./certs/live/$DOMAIN/fullchain.pem"
+echo "  - ./certs/live/$DOMAIN/privkey.pem"
+echo "  - ./certs/live/$DOMAIN/chain.pem" 
