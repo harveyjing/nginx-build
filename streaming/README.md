@@ -22,26 +22,36 @@ A web-based file management and streaming service with directory navigation, fil
 ## Directory Structure
 
 ```
-nginx-build/                    # Root project folder
-├── Dockerfile                  # Main Nginx HTTP/3 build configuration
-├── streaming/                  # File streaming application
-│   ├── backend/                # Go backend service
-│   │   ├── main.go            # Main application code
-│   │   ├── go.mod             # Go module definition
-│   │   ├── go.sum             # Go module checksums
-│   │   └── data/              # Data directory for files
-│   ├── frontend/              # Frontend static files
-│   │   ├── index.html         # Main HTML file
-│   │   ├── css/               # CSS styles
-│   │   └── js/                # JavaScript code
-│   ├── Dockerfile.backend     # Backend Docker configuration
-│   ├── nginx.conf             # Default Nginx configuration
-│   ├── nginx.conf.local       # Local development Nginx configuration
-│   ├── nginx.conf.production  # Production Nginx configuration
-│   ├── docker-compose.yml     # Base Docker Compose configuration
+nginx-build/                      # Root project folder
+├── Dockerfile                    # Main Nginx HTTP/3 build configuration
+├── setup-ssl.sh                 # SSL certificate generation script
+├── streaming/                    # File streaming application
+│   ├── backend/                  # Go backend service
+│   │   ├── main.go              # Main application code
+│   │   ├── go.mod              # Go module definition
+│   │   ├── go.sum              # Go module checksums
+│   │   └── data/               # Data directory for files
+│   ├── frontend/                # Frontend static files
+│   │   ├── index.html          # Main HTML file
+│   │   ├── css/                # CSS styles
+│   │   └── js/                 # JavaScript code
+│   ├── Dockerfile.backend       # Backend Docker configuration
+│   ├── nginx.conf              # Default Nginx configuration
+│   ├── nginx.conf.local        # Local development Nginx configuration
+│   ├── nginx.conf.production   # Production Nginx configuration template
+│   ├── default.conf            # Default server configuration
+│   ├── default.conf.local      # Local server configuration
+│   ├── default.conf.production # Production server configuration
+│   ├── default.conf.production.template # Template for production server config
+│   ├── docker-compose.yml      # Base Docker Compose configuration
 │   ├── docker-compose.local.yml # Local environment overrides
 │   └── docker-compose.production.yml # Production environment overrides
-└── certs/                      # SSL certificates for HTTPS/HTTP3
+└── certs/                       # SSL certificates for HTTPS/HTTP3
+    └── live/                    # Let's Encrypt live certificates
+        └── example.com/         # Domain-specific certificates
+            ├── fullchain.pem    # Full certificate chain
+            ├── privkey.pem     # Private key
+            └── chain.pem       # Certificate chain
 ```
 
 ## Environment Configuration
@@ -78,11 +88,11 @@ The service supports two environments:
 
 2. Create data directory if it doesn't exist:
    ```
-   mkdir -p streaming/data
+   mkdir -p streaming/backend/data
    mkdir -p certs
    ```
 
-3. Place your SSL certificates in the certs directory with the following structure (for production):
+3. Generate certificates by `setup-ssl.sh` script at root folder. Those files will be mounted inside docker container like blow (for production):
    ```
    certs/
    └── live/
@@ -94,7 +104,7 @@ The service supports two environments:
 
 4. Add some test files to the data directory (optional):
    ```
-   cp -r /path/to/your/files streaming/data/
+   cp -r /path/to/your/files streaming/backend/data/
    ```
 
 5. Build and start the containers using the appropriate environment:
@@ -106,11 +116,23 @@ The service supports two environments:
    ```
 
    **For production deployment:**
-   ```bash
-   cd streaming
-   docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
-   ```
+   Before deploying to production, you need to configure your domain:
 
+   1. Replace the PRIMARY_DOMAIN placeholder in the template:
+      ```bash
+      # Replace example.com with your actual domain
+      sed "s/PRIMARY_DOMAIN/example.com/g" default.conf.production.template > default.conf.production
+      ```
+   2. Verify the configuration:
+      ```bash
+      grep "server_name" default.conf.production
+      # Should output: server_name example.com www.example.com;
+      ```
+   3. Ensure your SSL certificates are in the root `cert` folder:
+   4. Then start your server by:
+      ```bash
+      docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+      ```
 6. Access the application:
    - Local environment: http://localhost
    - Production environment: https://example.com (or http://example.com which redirects)
@@ -126,8 +148,8 @@ docker-compose down
 
 For HTTPS and HTTP/3 to work in production, you need valid SSL certificates. You can use Let's Encrypt to generate free SSL certificates with the following command:
 
-```
-certbot certonly --standalone -d yourdomain.com
+```sh
+$PROJECT_ROOT/setup-ssl.sh
 ```
 
 ## HTTP/3 Benefits
@@ -162,7 +184,7 @@ Edit files in the `frontend` directory. Changes will be reflected immediately si
 
 Edit the appropriate configuration file:
 - `nginx.conf.local` for local environment
-- `nginx.conf.production` for production environment
+- `nginx.conf.production` for production environment (Generated by the template)
 
 Then restart the appropriate environment:
 
@@ -173,11 +195,3 @@ docker-compose -f docker-compose.yml -f docker-compose.local.yml restart nginx
 # For production deployment
 docker-compose -f docker-compose.yml -f docker-compose.production.yml restart nginx
 ```
-
-## Scalability
-
-For production deployment, consider:
-- Using a managed container service (Kubernetes, ECS, etc.)
-- Setting up a load balancer
-- Implementing proper authentication
-- Using object storage for files instead of local storage 
